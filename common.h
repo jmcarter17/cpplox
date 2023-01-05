@@ -1,0 +1,6 @@
+#ifndef CPPLOX_COMMON_H
+#define CPPLOX_COMMON_H
+
+
+
+#endif //CPPLOX_COMMON_H
