@@ -10,6 +10,11 @@
 
 enum class OP : uint8_t {
     CONSTANT,
+    NEGATE,
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE,
     RETURN
 };
 

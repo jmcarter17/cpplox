@@ -20,10 +20,15 @@ int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
     }
 
     switch (auto instruction = static_cast<OP>(chunk.code[index]); instruction) {
-        case OP::RETURN:
-            return simpleInstruction(instruction, index);
         case OP::CONSTANT:
             return constantInstruction(chunk, instruction, index);
+        case OP::NEGATE:
+        case OP::ADD:
+        case OP::SUBTRACT:
+        case OP::MULTIPLY:
+        case OP::DIVIDE:
+        case OP::RETURN:
+            return simpleInstruction(instruction, index);
         default:
             return unknownInstruction(instruction, index);
     }
