@@ -1,9 +1,10 @@
 #include <iostream>
 #include <iomanip>
 #include "Disassembler.h"
+#include <fmt/core.h>
 
 void Disassembler::disassembleChunk(const Chunk &chunk, std::string_view name) {
-    std::cout << "== " << name << " ==\n";
+    fmt::print("== {} ==\n", name);
 
     for (int idx = 0; idx < chunk.code.size();) {
         idx = disassembleInstruction(chunk, idx);
@@ -11,33 +12,36 @@ void Disassembler::disassembleChunk(const Chunk &chunk, std::string_view name) {
 }
 
 int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
-    std::cout << std::setfill('0') << std::setw(4) << index << ' ';
+    fmt::print("{:#04} ", index);
     if (index > 0 && chunk.getLine(index) == chunk.getLine(index - 1)) {
-        std::cout << "   | ";
+        fmt::print("{:>5}", "| ");
     } else {
-        std::cout << std::setw(4) << chunk.getLine(index) << ' ';
+        fmt::print("{:>4} ", chunk.getLine(index));
     }
 
-    auto instruction = static_cast<OP>(chunk.code[index]);
-    switch (instruction) {
+    switch (auto instruction = static_cast<OP>(chunk.code[index]); instruction) {
         case OP::RETURN:
             return simpleInstruction(instruction, index);
         case OP::CONSTANT:
             return constantInstruction(chunk, instruction, index);
         default:
-            std::cout << "Unknown opcode " << instruction << '\n';
-            return index + 1;
+            return unknownInstruction(instruction, index);
     }
 }
 
-int Disassembler::simpleInstruction(OP code, int index) {
-    std::cout << code << '\n';
+int Disassembler::unknownInstruction(OP op, int index) {
+    fmt::print("Unknown instruction at index {}", index);
     return index + 1;
 }
 
-int Disassembler::constantInstruction(const Chunk& chunk, OP op, int index) {
-    auto constant_index = chunk.code[index+1];
-    std::cout << op << " " << static_cast<int>(constant_index) << ' ';
-    std::cout << chunk.constants[constant_index] << '\n';
+int Disassembler::simpleInstruction(OP code, int index) {
+    fmt::print("{}\n", code);
+    return index + 1;
+}
+
+int Disassembler::constantInstruction(const Chunk &chunk, OP op, int index) {
+    auto constant_index = chunk.code[index + 1];
+    fmt::print("{} {:>10} '{}'\n", op, constant_index, chunk.constants[constant_index]);
+
     return index + 2;
 }

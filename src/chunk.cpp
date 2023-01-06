@@ -1,5 +1,5 @@
-#include <iostream>
 #include "chunk.h"
+#include "magic_enum.hpp"
 
 auto Chunk::writeChunk(uint8_t opcode, int line) -> void {
     code.push_back(opcode);
@@ -7,12 +7,6 @@ auto Chunk::writeChunk(uint8_t opcode, int line) -> void {
         lines.back().num_instructions += 1;
     } else {
         lines.emplace_back(line);
-    }
-}
-
-auto Chunk::printChunks() -> void {
-    for (auto chunk : code) {
-        std::cout << static_cast<OP>(chunk) << "\n";
     }
 }
 
@@ -30,9 +24,4 @@ auto Chunk::getLine(size_t index) const -> int {
         }
     }
     return -1;
-}
-
-std::ostream& operator<< (std::ostream& os, const OP& opcode) {
-    os << "OP::" << magic_enum::enum_name(opcode);
-    return os;
 }

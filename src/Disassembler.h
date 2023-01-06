@@ -2,7 +2,7 @@
 #define CPPLOX_DISASSEMBLER_H
 
 
-#include <string>
+#include <string_view>
 #include "chunk.h"
 
 struct Disassembler {
@@ -12,6 +12,8 @@ struct Disassembler {
     static int simpleInstruction(OP code, int index);
 
     static int constantInstruction(const Chunk& chunk, OP op, int index);
+
+    static int unknownInstruction(OP op, int index);
 };
 
 

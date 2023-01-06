@@ -1,0 +1,6 @@
+[requires]
+fmt/9.1.0
+magic_enum/0.8.2
+
+[generators]
+cmake
