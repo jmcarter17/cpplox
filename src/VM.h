@@ -21,7 +21,7 @@ struct VM {
 
     VM();
 
-    InterpretResult interpret(Chunk* a_chunk);
+    InterpretResult interpret(const char* source);
     InterpretResult run();
     void printValue(Value constant);
     inline uint8_t read_byte();

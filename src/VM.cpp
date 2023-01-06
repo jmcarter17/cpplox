@@ -2,6 +2,7 @@
 #include "common.h"
 #include "Disassembler.h"
 #include <functional>
+#include "compiler.h"
 
 
 VM::VM() {
@@ -9,10 +10,13 @@ VM::VM() {
 }
 
 
-InterpretResult VM::interpret(Chunk *a_chunk) {
-    chunk = a_chunk;
-    ip = chunk->code.data();
-    return run();
+InterpretResult VM::interpret(const char* source) {
+//    chunk = a_chunk;
+//    ip = chunk->code.data();
+
+//    return run();
+    compile(source);
+    return InterpretResult::OK;
 }
 
 InterpretResult VM::run() {

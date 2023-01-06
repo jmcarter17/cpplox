@@ -7,7 +7,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
 add_executable(cpplox
-        src/main.cpp src/chunk.cpp src/Disassembler.cpp src/VM.cpp src/VM.h)
+        src/main.cpp src/chunk.cpp src/Disassembler.cpp src/VM.cpp src/scanner.cpp src/compiler.cpp)
 target_link_libraries(cpplox ${CONAN_LIBS})
 
 
