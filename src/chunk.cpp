@@ -10,6 +10,12 @@ auto Chunk::writeChunk(uint8_t opcode, int line) -> void {
     }
 }
 
+
+auto Chunk::writeChunk(OP opcode, int line) -> void {
+    writeChunk(to_integral(opcode), line);
+}
+
+
 auto Chunk::addConstant(Value value) -> uint8_t {
     constants.push_back(value);
     return static_cast<uint8_t>(constants.size() - 1);
@@ -24,4 +30,10 @@ auto Chunk::getLine(size_t index) const -> int {
         }
     }
     return -1;
+}
+
+void Chunk::writeConstant(Value value, int line) {
+    auto index = addConstant(value);
+    writeChunk(OP::CONSTANT, line);
+    writeChunk(index, line);
 }
