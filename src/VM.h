@@ -21,7 +21,7 @@ struct VM {
 
     VM();
 
-    InterpretResult interpret(const char* source);
+    InterpretResult interpret(std::string_view);
     InterpretResult run();
     void printValue(Value constant);
     inline uint8_t read_byte();

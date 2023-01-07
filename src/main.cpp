@@ -47,9 +47,8 @@ static char* readFile(const char* path) {
 
 static void runFile(const char* path) {
     VM vm;
-    const char* source{readFile(path)};
-    InterpretResult result = vm.interpret(source);
-//    free(source);
+    std::unique_ptr<char> source{readFile(path)};
+    InterpretResult result = vm.interpret(std::string_view{source.get()});
 
     if (result == InterpretResult::COMPILE_ERROR) exit(65);
     if (result == InterpretResult::RUNTIME_ERROR) exit(70);
@@ -63,7 +62,7 @@ int main(int argc, const char* argv[]) {
     } else if (argc == 2) {
         runFile(argv[1]);
     } else {
-        fprintf(stderr, "Usage: clox [path]\n");
+        fmt::print(stderr, "Usage: clox [path]\n");
         exit(64);
     }
 

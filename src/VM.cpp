@@ -10,7 +10,7 @@ VM::VM() {
 }
 
 
-InterpretResult VM::interpret(const char* source) {
+InterpretResult VM::interpret(std::string_view source) {
 //    chunk = a_chunk;
 //    ip = chunk->code.data();
 

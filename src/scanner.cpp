@@ -2,13 +2,11 @@
 #include "scanner.h"
 
 
-Token::Token(TokenType type, const char *start, int length, int line) : type{type}, start{start}, length{length},
-                                                                        line{line} {}
+Token::Token(TokenType type, std::string_view lexeme, int line) : type{type}, lexeme{lexeme}, line{line} {}
 
-
-Scanner::Scanner(const char *source) {
-    start = source;
-    current = source;
+Scanner::Scanner(std::string_view source) {
+    start = source.data();
+    current = source.data();
     line = 1;
 }
 
@@ -69,11 +67,11 @@ Token Scanner::scanToken() {
 }
 
 auto Scanner::makeToken(TokenType type) -> Token {
-    return {type, start, (int) (current - start), line};
+    return {type, {start, current}, line};
 }
 
-auto Scanner::errorToken(const char *message) const -> Token {
-    return {TokenType::ERROR, message, (int) strlen(message), line};
+auto Scanner::errorToken(std::string_view message) const -> Token {
+    return {TokenType::ERROR, message, line};
 }
 
 char Scanner::advance() {
@@ -160,31 +158,47 @@ Token Scanner::identifier() {
 
 TokenType Scanner::identifierType() {
     switch (start[0]) {
-        case 'a': return checkKeyword(1, 2, "nd", TokenType::AND);
-        case 'c': return checkKeyword(1, 4, "lass", TokenType::CLASS);
-        case 'e': return checkKeyword(1, 3, "lse", TokenType::ELSE);
-        case 'i': return checkKeyword(1, 1, "f", TokenType::IF);
-        case 'n': return checkKeyword(1, 2, "il", TokenType::NIL);
-        case 'o': return checkKeyword(1, 1, "r", TokenType::OR);
-        case 'p': return checkKeyword(1, 4, "rint", TokenType::PRINT);
-        case 'r': return checkKeyword(1, 5, "eturn", TokenType::RETURN);
-        case 's': return checkKeyword(1, 4, "uper", TokenType::SUPER);
-        case 'v': return checkKeyword(1, 2, "ar", TokenType::VAR);
-        case 'w': return checkKeyword(1, 4, "hile", TokenType::WHILE);
+        case 'a':
+            return checkKeyword(1, 2, "nd", TokenType::AND);
+        case 'c':
+            return checkKeyword(1, 4, "lass", TokenType::CLASS);
+        case 'e':
+            return checkKeyword(1, 3, "lse", TokenType::ELSE);
+        case 'i':
+            return checkKeyword(1, 1, "f", TokenType::IF);
+        case 'n':
+            return checkKeyword(1, 2, "il", TokenType::NIL);
+        case 'o':
+            return checkKeyword(1, 1, "r", TokenType::OR);
+        case 'p':
+            return checkKeyword(1, 4, "rint", TokenType::PRINT);
+        case 'r':
+            return checkKeyword(1, 5, "eturn", TokenType::RETURN);
+        case 's':
+            return checkKeyword(1, 4, "uper", TokenType::SUPER);
+        case 'v':
+            return checkKeyword(1, 2, "ar", TokenType::VAR);
+        case 'w':
+            return checkKeyword(1, 4, "hile", TokenType::WHILE);
         case 'f':
             if ((current - start) > 1) {
-                switch(start[1]) {
-                    case 'a': return checkKeyword(2, 3, "lse", TokenType::FALSE);
-                    case 'o': return checkKeyword(2, 1, "r", TokenType::FOR);
-                    case 'u': return checkKeyword(2, 1, "n", TokenType::FUN);
+                switch (start[1]) {
+                    case 'a':
+                        return checkKeyword(2, 3, "lse", TokenType::FALSE);
+                    case 'o':
+                        return checkKeyword(2, 1, "r", TokenType::FOR);
+                    case 'u':
+                        return checkKeyword(2, 1, "n", TokenType::FUN);
                 }
             }
             break;
         case 't':
             if ((current - start) > 1) {
-                switch(start[1]) {
-                    case 'h': return checkKeyword(2, 2, "is", TokenType::THIS);
-                    case 'r': return checkKeyword(2, 2, "ue", TokenType::TRUE);
+                switch (start[1]) {
+                    case 'h':
+                        return checkKeyword(2, 2, "is", TokenType::THIS);
+                    case 'r':
+                        return checkKeyword(2, 2, "ue", TokenType::TRUE);
                 }
             }
             break;
@@ -192,13 +206,9 @@ TokenType Scanner::identifierType() {
     return TokenType::IDENTIFIER;
 }
 
-TokenType Scanner::checkKeyword(int begin, int length, const char* rest, TokenType type) {
+TokenType Scanner::checkKeyword(int begin, int length, const char *rest, TokenType type) {
     if (current - start == begin + length && memcmp(start + begin, rest, length) == 0) {
         return type;
     }
     return TokenType::IDENTIFIER;
 }
-
-
-
-

@@ -1,10 +1,9 @@
 #include "compiler.h"
 #include "scanner.h"
 #include <fmt/core.h>
-#include <magic_enum.hpp>
 
 
-void compile(const char *source) {
+void compile(std::string_view source) {
     auto scanner = Scanner(source);
     int line = -1;
     for (;;) {
@@ -18,6 +17,6 @@ void compile(const char *source) {
         } else {
             fmt::print("{:>5}", "| ");
         }
-        printf("%2d '%.*s'\n", magic_enum::enum_integer(token.type), token.length, token.start);
+        fmt::print("{} '{}'\n", token.type, token.lexeme);
     }
 }

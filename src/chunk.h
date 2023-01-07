@@ -50,11 +50,8 @@ struct Chunk {
 
     auto writeChunk(uint8_t, int line) -> void;
     auto writeChunk(OP opcode, int line) -> void;
-
     auto addConstant(Value value) -> uint8_t;
-
     [[nodiscard]] auto getLine(size_t index) const -> int;
-
     void writeConstant(Value d, int line);
 };
 
