@@ -6,6 +6,7 @@
 #include "chunk.h"
 #include "scanner.h"
 #include <type_traits>
+#include <map>
 
 
 enum class Precedence {
@@ -70,7 +71,7 @@ class Compiler {
         Precedence precedence;
     };
 
-    ParseRule rules[40];
+    std::map<TokenType, ParseRule> rules;
     ParseRule *getRule(TokenType type);
 
 public:

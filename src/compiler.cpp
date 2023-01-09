@@ -5,48 +5,48 @@
 #include "Disassembler.h"
 
 Compiler::Compiler(std::string_view source) :
-    scanner{source}, parser{}, rules{
-        [to_integral(TokenType::LEFT_PAREN)]    = {&Compiler::grouping, nullptr, Precedence::NONE},
-        [to_integral(TokenType::RIGHT_PAREN)]   = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::LEFT_BRACE)]    = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::RIGHT_BRACE)]   = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::COMMA)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::DOT)]           = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::MINUS)]         = {&Compiler::unary, &Compiler::binary, Precedence::TERM},
-        [to_integral(TokenType::PLUS)]          = {nullptr, &Compiler::binary, Precedence::TERM},
-        [to_integral(TokenType::SEMICOLON)]     = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::SLASH)]         = {nullptr, &Compiler::binary, Precedence::FACTOR},
-        [to_integral(TokenType::STAR)]          = {nullptr, &Compiler::binary, Precedence::FACTOR},
-        [to_integral(TokenType::BANG)]          = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::BANG_EQUAL)]    = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::EQUAL)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::EQUAL_EQUAL)]   = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::GREATER)]       = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::GREATER_EQUAL)] = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::LESS)]          = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::LESS_EQUAL)]    = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::IDENTIFIER)]    = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::STRING)]        = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::NUMBER)]        = {&Compiler::number, nullptr, Precedence::NONE},
-        [to_integral(TokenType::AND)]           = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::CLASS)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::ELSE)]          = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::FALSE)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::FOR)]           = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::FUN)]           = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::IF)]            = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::NIL)]           = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::OR)]            = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::PRINT)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::RETURN)]        = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::SUPER)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::THIS)]          = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::TRUE)]          = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::VAR)]           = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::WHILE)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::ERROR)]         = {nullptr, nullptr, Precedence::NONE},
-        [to_integral(TokenType::EOFILE)]        = {nullptr, nullptr, Precedence::NONE},
-    } {}
+        scanner{source}, parser{}, rules{
+        {TokenType::LEFT_PAREN,    {&Compiler::grouping, nullptr,           Precedence::NONE}},
+        {TokenType::RIGHT_PAREN,   {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::LEFT_BRACE,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::RIGHT_BRACE,   {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::COMMA,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::DOT,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::MINUS,         {&Compiler::unary,    &Compiler::binary, Precedence::TERM}},
+        {TokenType::PLUS,          {nullptr,             &Compiler::binary, Precedence::TERM}},
+        {TokenType::SEMICOLON,     {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::SLASH,         {nullptr,             &Compiler::binary, Precedence::FACTOR}},
+        {TokenType::STAR,          {nullptr,             &Compiler::binary, Precedence::FACTOR}},
+        {TokenType::BANG,          {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::BANG_EQUAL,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::EQUAL,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::EQUAL_EQUAL,   {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::GREATER,       {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::GREATER_EQUAL, {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::LESS,          {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::LESS_EQUAL,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::IDENTIFIER,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::STRING,        {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::NUMBER,        {&Compiler::number,   nullptr,           Precedence::NONE}},
+        {TokenType::AND,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::CLASS,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::ELSE,          {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::FALSE,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::FOR,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::FUN,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::IF,            {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::NIL,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::OR,            {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::PRINT,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::RETURN,        {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::SUPER,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::THIS,          {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::TRUE,          {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::VAR,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::WHILE,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::ERROR,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::EOFILE,        {nullptr,             nullptr,           Precedence::NONE}},
+} {}
 
 bool Compiler::compile(Chunk *chunk) {
     compilingChunk = chunk;
@@ -204,6 +204,6 @@ void Compiler::parsePrecedence(Precedence precedence) {
 }
 
 Compiler::ParseRule *Compiler::getRule(TokenType type) {
-    return &rules[to_integral(type)];
+    return &rules[type];
 }
 
