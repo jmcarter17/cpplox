@@ -148,7 +148,7 @@ void Compiler::number() {
 
 void Compiler::grouping() {
     expression();
-    consume(TokenType::RIGHT_PAREN, "Expect '_' after expression.");
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
 }
 
 void Compiler::unary() {
