@@ -46,6 +46,7 @@ struct Token {
     std::string_view lexeme;
     int line;
 
+    Token();
     Token(TokenType type, std::string_view lexeme, int line);
 };
 

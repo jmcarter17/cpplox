@@ -11,12 +11,18 @@ VM::VM() {
 
 
 InterpretResult VM::interpret(std::string_view source) {
-//    chunk = a_chunk;
-//    ip = chunk->code.data();
+    auto* a_chunk = new Chunk{};
+    Compiler compiler(source);
 
-//    return run();
-    compile(source);
-    return InterpretResult::OK;
+    if (!compiler.compile(a_chunk)) {
+        return InterpretResult::COMPILE_ERROR;
+    }
+
+    this->chunk = a_chunk;
+    this->ip = a_chunk->code.data();
+
+    InterpretResult result = run();
+    return result;
 }
 
 InterpretResult VM::run() {

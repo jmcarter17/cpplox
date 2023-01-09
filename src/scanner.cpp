@@ -4,6 +4,8 @@
 
 Token::Token(TokenType type, std::string_view lexeme, int line) : type{type}, lexeme{lexeme}, line{line} {}
 
+Token::Token() : type{TokenType::ERROR}, lexeme{}, line{} {}
+
 Scanner::Scanner(std::string_view source) {
     start = source.data();
     current = source.data();
