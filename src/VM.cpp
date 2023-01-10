@@ -3,12 +3,10 @@
 #include "Disassembler.h"
 #include <functional>
 #include "compiler.h"
+#include <cstdarg>
 
 
-VM::VM() {
-    stackTop = stack.data();
-}
-
+VM::VM() : stackTop{stack.data()} {}
 
 InterpretResult VM::interpret(std::string_view source) {
     auto* a_chunk = new Chunk{};
@@ -42,7 +40,7 @@ InterpretResult VM::run() {
         if constexpr (DEBUG_TRACE_EXECUTION) {
             fmt::print("{:>10}", " ");
             for (Value *slot = stack.data(); slot < stackTop; ++slot) {
-                fmt::print("[ {} ]", *slot);
+                fmt::print("[ {} ]", asNumber(*slot));
             }
             fmt::print("\n");
             Disassembler::disassembleInstruction(*chunk, static_cast<int>(ip - chunk->code.data()));
@@ -52,19 +50,28 @@ InterpretResult VM::run() {
                 push(read_constant());
                 break;
             case OP::NEGATE:
-                push(-pop());
+                if (!isNumber(peek(0))){
+                    runtimeError("Operand must be a number.");
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                push(number_val(-(asNumber(pop()))));
                 break;
             case OP::ADD:
-                binary_op(std::plus<Value>{});
+//                auto result = binary_op(std::plus<double>{});
+                if (binary_op(std::plus<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
                 break;
             case OP::SUBTRACT:
-                binary_op(std::minus<Value>{});
+                if (binary_op(std::minus<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
                 break;
             case OP::MULTIPLY:
-                binary_op(std::multiplies<Value>{});
+                if (binary_op(std::multiplies<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
                 break;
             case OP::DIVIDE:
-                binary_op(std::divides<Value>{});
+                if (binary_op(std::divides<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
                 break;
             case OP::RETURN:
                 printValue(pop());
@@ -80,7 +87,7 @@ InterpretResult VM::run() {
 }
 
 void VM::printValue(Value constant) {
-    fmt::print("{}", constant);
+    fmt::print("{}", asNumber(constant));
 }
 
 uint8_t VM::read_byte() {
@@ -99,11 +106,37 @@ Value VM::pop() {
     return *(--stackTop);
 }
 
+Value VM::peek(int distance) {
+    return stackTop[-1 - distance];
+}
+
+void VM::runtimeError(std::string_view format, ...) {
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format.data(), args);
+    va_end(args);
+    fputs("\n", stderr);
+
+    size_t instruction = ip - chunk->code.data() - 1;
+    int line = chunk->lines[instruction].line_no;
+    fprintf(stderr, "[line %d] in script\n", line);
+    resetStack();
+}
+
+void VM::resetStack() {
+    stackTop = stack.data();
+}
+
 template<typename BINARY>
-constexpr auto VM::binary_op(BINARY fct) -> void {
-    auto b = pop();
-    auto a = pop();
-    push(fct(a,b));
+constexpr auto VM::binary_op(BINARY fct) -> InterpretResult {
+    if (!isNumber(peek(0)) || !isNumber(peek(1))) {
+        runtimeError("Operands must be numbers");
+        return InterpretResult::RUNTIME_ERROR;
+    }
+    double b = asNumber(pop());
+    double a = asNumber(pop());
+    push(number_val(fct(a, b)));
+    return InterpretResult::OK;
 }
 
 

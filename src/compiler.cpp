@@ -46,7 +46,7 @@ Compiler::Compiler(std::string_view source) :
         {TokenType::WHILE,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::ERROR,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::EOFILE,        {nullptr,             nullptr,           Precedence::NONE}},
-} {}
+        }, compilingChunk{} {}
 
 bool Compiler::compile(Chunk *chunk) {
     compilingChunk = chunk;
@@ -123,7 +123,7 @@ void Compiler::emitBytes(OP opcode, uint8_t byte) {
     emitByte(byte);
 }
 
-void Compiler::emitConstant(double value) {
+void Compiler::emitConstant(Value value) {
     emitBytes(OP::CONSTANT, makeConstant(value));
 }
 
@@ -143,7 +143,7 @@ void Compiler::expression() {
 void Compiler::number() {
     auto lexeme = parser.previous.lexeme;
     auto value = std::strtod(lexeme.data(), nullptr);
-    emitConstant(value);
+    emitConstant(number_val(value));
 }
 
 void Compiler::grouping() {
@@ -177,7 +177,7 @@ void Compiler::binary() {
     }
 }
 
-uint8_t Compiler::makeConstant(double value) {
+uint8_t Compiler::makeConstant(Value value) {
     int constant = currentChunk()->addConstant(value);
     if (constant > std::numeric_limits<uint8_t>::max()) {
         error("Too many constants in one chunk.");

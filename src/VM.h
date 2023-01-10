@@ -14,8 +14,8 @@ enum class InterpretResult {
 };
 
 struct VM {
-    Chunk* chunk;
-    uint8_t* ip;
+    Chunk* chunk{};
+    uint8_t* ip{};
     std::array<Value, STACK_MAX> stack;
     Value* stackTop;
 
@@ -31,7 +31,13 @@ struct VM {
     Value pop();
 
     template<typename BINARY>
-    constexpr auto binary_op(BINARY f) -> void;
+    constexpr auto binary_op(BINARY fct) -> InterpretResult;
+
+    Value peek(int distance);
+
+    void runtimeError(std::string_view format, ...);
+
+    void resetStack();
 };
 
 

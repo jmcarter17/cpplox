@@ -48,7 +48,7 @@ class Compiler {
     void grouping();
     void unary();
     void binary();
-    uint8_t makeConstant(double value);
+    uint8_t makeConstant(Value value);
 
     void error(std::string_view message);
     void errorAt(const Token &token, std::string_view message);
@@ -58,7 +58,7 @@ class Compiler {
     void emitByte(OP opcode);
     void emitReturn();
     void emitBytes(OP opcode, uint8_t byte);
-    void emitConstant(double value);
+    void emitConstant(Value value);
 
     Chunk *currentChunk();
 
