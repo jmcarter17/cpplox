@@ -51,7 +51,7 @@ InterpretResult VM::run() {
                 break;
             case OP::NEGATE:
                 if (!isNumber(peek(0))){
-                    runtimeError("Operand must be a number.");
+                    runtimeError(fmt::runtime("Operand must be a number."));
                     return InterpretResult::RUNTIME_ERROR;
                 }
                 push(number_val(-(asNumber(pop()))));
@@ -110,16 +110,14 @@ Value VM::peek(int distance) {
     return stackTop[-1 - distance];
 }
 
-void VM::runtimeError(std::string_view format, ...) {
-    va_list args;
-    va_start(args, format);
-    vfprintf(stderr, format.data(), args);
-    va_end(args);
-    fputs("\n", stderr);
+template<typename... Args>
+void VM::runtimeError(fmt::basic_runtime<char> format, Args &&... args) {
+    fmt::print(stderr, format, args...);
+    fmt::print(stderr,"\n");
 
     size_t instruction = ip - chunk->code.data() - 1;
     int line = chunk->lines[instruction].line_no;
-    fprintf(stderr, "[line %d] in script\n", line);
+    fmt::print(stderr, "[line {}] in script\n", line);
     resetStack();
 }
 
@@ -130,7 +128,7 @@ void VM::resetStack() {
 template<typename BINARY>
 constexpr auto VM::binary_op(BINARY fct) -> InterpretResult {
     if (!isNumber(peek(0)) || !isNumber(peek(1))) {
-        runtimeError("Operands must be numbers");
+        runtimeError(fmt::runtime("Operands must be numbers."));
         return InterpretResult::RUNTIME_ERROR;
     }
     double b = asNumber(pop());

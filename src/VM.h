@@ -35,7 +35,8 @@ struct VM {
 
     Value peek(int distance);
 
-    void runtimeError(std::string_view format, ...);
+    template<typename... Args>
+    void runtimeError(fmt::basic_runtime<char> format, Args&&... args);
 
     void resetStack();
 };
