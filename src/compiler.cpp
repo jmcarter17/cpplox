@@ -17,36 +17,36 @@ Compiler::Compiler(std::string_view source) :
         {TokenType::SEMICOLON,     {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::SLASH,         {nullptr,             &Compiler::binary, Precedence::FACTOR}},
         {TokenType::STAR,          {nullptr,             &Compiler::binary, Precedence::FACTOR}},
-        {TokenType::BANG,          {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::BANG_EQUAL,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::BANG,          {&Compiler::unary,    nullptr,           Precedence::NONE}},
+        {TokenType::BANG_EQUAL,    {nullptr,             &Compiler::binary, Precedence::EQUALITY}},
         {TokenType::EQUAL,         {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::EQUAL_EQUAL,   {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::GREATER,       {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::GREATER_EQUAL, {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::LESS,          {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::LESS_EQUAL,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::EQUAL_EQUAL,   {nullptr,             &Compiler::binary, Precedence::EQUALITY}},
+        {TokenType::GREATER,       {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
+        {TokenType::GREATER_EQUAL, {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
+        {TokenType::LESS,          {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
+        {TokenType::LESS_EQUAL,    {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
         {TokenType::IDENTIFIER,    {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::STRING,        {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::NUMBER,        {&Compiler::number,   nullptr,           Precedence::NONE}},
         {TokenType::AND,           {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::CLASS,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::ELSE,          {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::FALSE,         {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::FALSE,         {&Compiler::literal,  nullptr,           Precedence::NONE}},
         {TokenType::FOR,           {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::FUN,           {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::IF,            {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::NIL,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::NIL,           {&Compiler::literal,  nullptr,           Precedence::NONE}},
         {TokenType::OR,            {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::PRINT,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::RETURN,        {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::SUPER,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::THIS,          {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::TRUE,          {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::TRUE,          {&Compiler::literal,  nullptr,           Precedence::NONE}},
         {TokenType::VAR,           {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::WHILE,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::ERROR,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::EOFILE,        {nullptr,             nullptr,           Precedence::NONE}},
-        }, compilingChunk{} {}
+}, compilingChunk{} {}
 
 bool Compiler::compile(Chunk *chunk) {
     compilingChunk = chunk;
@@ -158,22 +158,71 @@ void Compiler::unary() {
     parsePrecedence(Precedence::UNARY);
 
     switch (operatorType) {
-        case TokenType::MINUS: emitByte(OP::NEGATE); break;
-        default: return; // unreachable
+        case TokenType::MINUS:
+            emitByte(OP::NEGATE);
+            break;
+        case TokenType::BANG:
+            emitByte(OP::NOT);
+            break;
+        default:
+            return; // unreachable
     }
 }
 
 void Compiler::binary() {
     TokenType operatorType = parser.previous.type;
-    ParseRule* rule = getRule(operatorType);
+    ParseRule *rule = getRule(operatorType);
     parsePrecedence(static_cast<Precedence>(to_integral(rule->precedence) + 1));
 
     switch (operatorType) {
-        case TokenType::PLUS: emitByte(OP::ADD); break;
-        case TokenType::MINUS: emitByte(OP::SUBTRACT); break;
-        case TokenType::STAR: emitByte(OP::MULTIPLY); break;
-        case TokenType::SLASH: emitByte(OP::DIVIDE); break;
-        default: return; // unreachable
+        case TokenType::BANG_EQUAL:
+            emitByte(OP::NOT_EQUAL);
+            break;
+        case TokenType::EQUAL_EQUAL:
+            emitByte(OP::EQUAL);
+            break;
+        case TokenType::GREATER:
+            emitByte(OP::GREATER);
+            break;
+        case TokenType::GREATER_EQUAL:
+            emitByte(OP::GREATER_EQUAL);
+            break;
+        case TokenType::LESS:
+            emitByte(OP::LESS);
+            break;
+        case TokenType::LESS_EQUAL:
+            emitByte(OP::LESS_EQUAL);
+            break;
+        case TokenType::PLUS:
+            emitByte(OP::ADD);
+            break;
+        case TokenType::MINUS:
+            emitByte(OP::SUBTRACT);
+            break;
+        case TokenType::STAR:
+            emitByte(OP::MULTIPLY);
+            break;
+        case TokenType::SLASH:
+            emitByte(OP::DIVIDE);
+            break;
+        default:
+            return; // unreachable
+    }
+}
+
+void Compiler::literal() {
+    switch (parser.previous.type) {
+        case TokenType::FALSE:
+            emitByte(OP::FALSE);
+            break;
+        case TokenType::TRUE:
+            emitByte(OP::TRUE);
+            break;
+        case TokenType::NIL:
+            emitByte(OP::NIL);
+            break;
+        default:
+            return; // unreacheable.
     }
 }
 

@@ -23,7 +23,6 @@ struct VM {
 
     InterpretResult interpret(std::string_view);
     InterpretResult run();
-    void printValue(Value constant);
     inline uint8_t read_byte();
     inline Value read_constant();
 

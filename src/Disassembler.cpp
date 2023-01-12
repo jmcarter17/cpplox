@@ -22,11 +22,21 @@ int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
     switch (auto instruction = static_cast<OP>(chunk.code[index]); instruction) {
         case OP::CONSTANT:
             return constantInstruction(chunk, instruction, index);
+        case OP::NIL:
+        case OP::TRUE:
+        case OP::FALSE:
         case OP::NEGATE:
+        case OP::EQUAL:
+        case OP::NOT_EQUAL:
+        case OP::GREATER:
+        case OP::GREATER_EQUAL:
+        case OP::LESS:
+        case OP::LESS_EQUAL:
         case OP::ADD:
         case OP::SUBTRACT:
         case OP::MULTIPLY:
         case OP::DIVIDE:
+        case OP::NOT:
         case OP::RETURN:
             return simpleInstruction(instruction, index);
         default:

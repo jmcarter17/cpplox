@@ -10,7 +10,17 @@
 
 enum class OP : uint8_t {
     CONSTANT,
+    NIL,
+    TRUE,
+    FALSE,
+    NOT,
     NEGATE,
+    EQUAL,
+    NOT_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+    LESS,
+    LESS_EQUAL,
     ADD,
     SUBTRACT,
     MULTIPLY,

@@ -42,12 +42,13 @@ class Compiler {
     void endCompiler();
     void parsePrecedence(Precedence precedence);
 
-//    expressions
+//  Parser functions
     void expression();
     void number();
     void grouping();
     void unary();
     void binary();
+    void literal();
     uint8_t makeConstant(Value value);
 
     void error(std::string_view message);

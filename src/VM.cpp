@@ -9,7 +9,7 @@
 VM::VM() : stackTop{stack.data()} {}
 
 InterpretResult VM::interpret(std::string_view source) {
-    auto* a_chunk = new Chunk{};
+    auto *a_chunk = new Chunk{};
     Compiler compiler(source);
 
     if (!compiler.compile(a_chunk)) {
@@ -40,7 +40,9 @@ InterpretResult VM::run() {
         if constexpr (DEBUG_TRACE_EXECUTION) {
             fmt::print("{:>10}", " ");
             for (Value *slot = stack.data(); slot < stackTop; ++slot) {
-                fmt::print("[ {} ]", asNumber(*slot));
+                fmt::print("[ ");
+                printValue(*slot);
+                fmt::print(" ]");
             }
             fmt::print("\n");
             Disassembler::disassembleInstruction(*chunk, static_cast<int>(ip - chunk->code.data()));
@@ -49,15 +51,55 @@ InterpretResult VM::run() {
             case OP::CONSTANT:
                 push(read_constant());
                 break;
+            case OP::NIL:
+                push(nil_val());
+                break;
+            case OP::TRUE:
+                push(bool_val(true));
+                break;
+            case OP::FALSE:
+                push(bool_val(false));
+                break;
             case OP::NEGATE:
-                if (!isNumber(peek(0))){
+                if (!isNumber(peek(0))) {
                     runtimeError(fmt::runtime("Operand must be a number."));
                     return InterpretResult::RUNTIME_ERROR;
                 }
                 push(number_val(-(asNumber(pop()))));
                 break;
+            case OP::EQUAL: {
+                Value b = pop();
+                Value a = pop();
+                push(bool_val(a == b));
+                break;
+            }
+            case OP::NOT_EQUAL: {
+                Value b = pop();
+                Value a = pop();
+                push(bool_val(a != b));
+                break;
+            }
+            case OP::GREATER: {
+                if (binary_op(std::greater<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
+                break;
+            }
+            case OP::GREATER_EQUAL: {
+                if (binary_op(std::greater_equal<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
+                break;
+            }
+            case OP::LESS: {
+                if (binary_op(std::less<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
+                break;
+            }
+            case OP::LESS_EQUAL: {
+                if (binary_op(std::less_equal<double>{}) == InterpretResult::RUNTIME_ERROR)
+                    return InterpretResult::RUNTIME_ERROR;
+                break;
+            }
             case OP::ADD:
-//                auto result = binary_op(std::plus<double>{});
                 if (binary_op(std::plus<double>{}) == InterpretResult::RUNTIME_ERROR)
                     return InterpretResult::RUNTIME_ERROR;
                 break;
@@ -73,6 +115,9 @@ InterpretResult VM::run() {
                 if (binary_op(std::divides<double>{}) == InterpretResult::RUNTIME_ERROR)
                     return InterpretResult::RUNTIME_ERROR;
                 break;
+            case OP::NOT:
+                push(bool_val(isFalsey(pop())));
+                break;
             case OP::RETURN:
                 printValue(pop());
                 fmt::print("\n");
@@ -84,10 +129,6 @@ InterpretResult VM::run() {
 //#undef READ_BYTE
 //#undef READ_CONSTANT
 //#undef BINARY_OP
-}
-
-void VM::printValue(Value constant) {
-    fmt::print("{}", asNumber(constant));
 }
 
 uint8_t VM::read_byte() {
@@ -113,10 +154,11 @@ Value VM::peek(int distance) {
 template<typename... Args>
 void VM::runtimeError(fmt::basic_runtime<char> format, Args &&... args) {
     fmt::print(stderr, format, args...);
-    fmt::print(stderr,"\n");
+    fmt::print(stderr, "\n");
 
     size_t instruction = ip - chunk->code.data() - 1;
-    int line = chunk->lines[instruction].line_no;
+//    int line = chunk->lines[instruction].line_no;
+    int line = chunk->getLine(instruction);
     fmt::print(stderr, "[line {}] in script\n", line);
     resetStack();
 }
@@ -133,7 +175,7 @@ constexpr auto VM::binary_op(BINARY fct) -> InterpretResult {
     }
     double b = asNumber(pop());
     double a = asNumber(pop());
-    push(number_val(fct(a, b)));
+    push(createValue(fct(a, b)));
     return InterpretResult::OK;
 }
 
