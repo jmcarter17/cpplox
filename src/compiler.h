@@ -5,6 +5,7 @@
 #include <string_view>
 #include "chunk.h"
 #include "scanner.h"
+#include "VM.h"
 #include <type_traits>
 #include <map>
 
@@ -35,6 +36,7 @@ class Compiler {
     Parser parser;
     Scanner scanner;
     Chunk *compilingChunk;
+    VM* vm;
 
 //    Compiler functions
     void advance();
@@ -50,6 +52,7 @@ class Compiler {
     void binary();
     void literal();
     uint8_t makeConstant(Value value);
+    void string();
 
     void error(std::string_view message);
     void errorAt(const Token &token, std::string_view message);
@@ -76,8 +79,10 @@ class Compiler {
     ParseRule *getRule(TokenType type);
 
 public:
-    explicit Compiler(std::string_view source);
+    explicit Compiler(std::string_view source, VM* vm);
     bool compile(Chunk *chunk);
+
+    ObjString* copyString(std::string_view lexeme);
 };
 
 

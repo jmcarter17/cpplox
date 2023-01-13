@@ -18,6 +18,10 @@ Value nil_val() {
     return createValue(std::monostate());
 }
 
+Value obj_val(Obj* obj) {
+    return createValue(obj);
+}
+
 double asNumber(Value value) {
     return std::get<double>(value);
 }
@@ -38,24 +42,56 @@ bool isNil(Value val) {
     return std::holds_alternative<std::monostate>(val);
 }
 
+bool isObj(Value val) {
+    return std::holds_alternative<Obj*>(val);;
+}
+
+bool isObjType(Value value, ObjType type) {
+    return isObj(value) && asObject(value)->type == type;
+}
+
+
+bool isString(Value value) {
+    return isObjType(value, ObjType::STRING);
+}
+
+Obj* asObject(Value value) {
+    return std::get<Obj*>(value);
+}
+
+ObjString *asString(Value value) {
+    return static_cast<ObjString*>(asObject(value));
+}
+
+const char* asCString(Value value) {
+    return static_cast<ObjString*>(asObject(value))->str.c_str();
+}
+
 bool isFalsey(Value val) {
 //    return isNil(val) || (isBool(val) && !asBool(val));
     return std::visit(overload{
-        [](double) {return false;},
-        [](bool val) {return !val;},
-        [](std::monostate) {return true;}
+        [](double)         {return false;},
+        [](bool val)       {return !val;},
+        [](std::monostate) {return true;},
+        [](Obj* obj)       {return false;}
     }, val);
 }
-
-//bool valuesEqual(Value a, Value b) {
-//    return a == b;
-//}
-
 
 void printValue(Value value) {
     std::visit(overload{
             [](double val)     { fmt::print("{}", asNumber(val)); },
             [](bool val)       { fmt::print("{}", asBool(val)); },
-            [](std::monostate) { fmt::print("nil"); }
+            [](std::monostate) { fmt::print("nil"); },
+            [](Obj* obj)       { printObject(obj); }
     }, value);
+}
+
+bool valuesEqual(Value a, Value b) {
+    if (a.index() != b.index()) return false;
+
+    if (std::holds_alternative<Obj*>(a)) {
+        return asString(a)->str == asString(b)->str;
+    }
+
+    return a == b;
 }

@@ -10,7 +10,7 @@ VM::VM() : stackTop{stack.data()} {}
 
 InterpretResult VM::interpret(std::string_view source) {
     auto *a_chunk = new Chunk{};
-    Compiler compiler(source);
+    Compiler compiler(source, this);
 
     if (!compiler.compile(a_chunk)) {
         return InterpretResult::COMPILE_ERROR;
@@ -70,7 +70,7 @@ InterpretResult VM::run() {
             case OP::EQUAL: {
                 Value b = pop();
                 Value a = pop();
-                push(bool_val(a == b));
+                push(bool_val(valuesEqual(a, b)));
                 break;
             }
             case OP::NOT_EQUAL: {
@@ -100,8 +100,16 @@ InterpretResult VM::run() {
                 break;
             }
             case OP::ADD:
-                if (binary_op(std::plus<double>{}) == InterpretResult::RUNTIME_ERROR)
+                if (isString(peek(0)) && isString(peek(1))) {
+                    concatenate();
+                } else if (isNumber(peek(0)) && isNumber(peek(1))) {
+                    double b = asNumber(pop());
+                    double a = asNumber(pop());
+                    push(number_val(a + b));
+                } else {
+                    runtimeError(fmt::runtime("Operands must be two numbers or two strings."));
                     return InterpretResult::RUNTIME_ERROR;
+                }
                 break;
             case OP::SUBTRACT:
                 if (binary_op(std::minus<double>{}) == InterpretResult::RUNTIME_ERROR)
@@ -165,6 +173,24 @@ void VM::runtimeError(fmt::basic_runtime<char> format, Args &&... args) {
 
 void VM::resetStack() {
     stackTop = stack.data();
+}
+
+void VM::concatenate() {
+    ObjString* b = asString(pop());
+    asString(peek(0))->str += b->str;
+}
+
+VM::~VM() {
+    deleteObjects();
+}
+
+void VM::deleteObjects() const {
+    Obj* object = objects;
+    while (object != nullptr) {
+        auto next = object->next;
+        delete object;
+        object = next;
+    }
 }
 
 template<typename BINARY>

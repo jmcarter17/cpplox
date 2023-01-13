@@ -18,8 +18,10 @@ struct VM {
     uint8_t* ip{};
     std::array<Value, STACK_MAX> stack;
     Value* stackTop;
+    Obj* objects{nullptr};
 
     VM();
+    ~VM();
 
     InterpretResult interpret(std::string_view);
     InterpretResult run();
@@ -38,6 +40,10 @@ struct VM {
     void runtimeError(fmt::basic_runtime<char> format, Args&&... args);
 
     void resetStack();
+
+    void concatenate();
+
+    void deleteObjects() const;
 };
 
 

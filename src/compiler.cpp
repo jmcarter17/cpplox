@@ -4,8 +4,8 @@
 #include "common.h"
 #include "Disassembler.h"
 
-Compiler::Compiler(std::string_view source) :
-        scanner{source}, parser{}, rules{
+Compiler::Compiler(std::string_view source, VM* vm) :
+        scanner{source}, parser{}, vm{vm}, rules{
         {TokenType::LEFT_PAREN,    {&Compiler::grouping, nullptr,           Precedence::NONE}},
         {TokenType::RIGHT_PAREN,   {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::LEFT_BRACE,    {nullptr,             nullptr,           Precedence::NONE}},
@@ -26,7 +26,7 @@ Compiler::Compiler(std::string_view source) :
         {TokenType::LESS,          {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
         {TokenType::LESS_EQUAL,    {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
         {TokenType::IDENTIFIER,    {nullptr,             nullptr,           Precedence::NONE}},
-        {TokenType::STRING,        {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::STRING,        {&Compiler::string,   nullptr,           Precedence::NONE}},
         {TokenType::NUMBER,        {&Compiler::number,   nullptr,           Precedence::NONE}},
         {TokenType::AND,           {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::CLASS,         {nullptr,             nullptr,           Precedence::NONE}},
@@ -146,6 +146,11 @@ void Compiler::number() {
     emitConstant(number_val(value));
 }
 
+void Compiler::string() {
+    auto lexeme = parser.previous.lexeme;
+    emitConstant(obj_val(copyString(lexeme)));
+}
+
 void Compiler::grouping() {
     expression();
     consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
@@ -254,5 +259,12 @@ void Compiler::parsePrecedence(Precedence precedence) {
 
 Compiler::ParseRule *Compiler::getRule(TokenType type) {
     return &rules[type];
+}
+
+ObjString* Compiler::copyString(std::string_view lexeme) {
+    auto view = std::string_view(lexeme.data() + 1, lexeme.size() - 2);
+    auto obj = new ObjString(ObjType::STRING, vm->objects, view);
+    vm->objects = obj;
+    return obj;
 }
 

@@ -56,7 +56,8 @@ int Disassembler::simpleInstruction(OP code, int index) {
 
 int Disassembler::constantInstruction(const Chunk &chunk, OP op, int index) {
     auto constant_index = chunk.code[index + 1];
-    fmt::print("{} {:>10} '{}'\n", op, constant_index, asNumber(chunk.constants[constant_index]));
-
+    fmt::print("{} {:>10} ", op, constant_index);
+    printValue(chunk.constants[constant_index]);
+    fmt::print("\n");
     return index + 2;
 }
