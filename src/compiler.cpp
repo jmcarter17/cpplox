@@ -262,7 +262,9 @@ Compiler::ParseRule *Compiler::getRule(TokenType type) {
 }
 
 ObjString* Compiler::copyString(std::string_view lexeme) {
-    auto view = std::string_view(lexeme.data() + 1, lexeme.size() - 2);
+//    auto view = std::string_view(lexeme.data() + 1, lexeme.size() - 2);
+    auto [it, val] = vm->strings.emplace(std::string_view(lexeme.data() + 1, lexeme.size() - 2));
+    auto view = std::string_view(*it);
     auto obj = new ObjString(ObjType::STRING, vm->objects, view);
     vm->objects = obj;
     return obj;

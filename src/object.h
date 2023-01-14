@@ -15,7 +15,7 @@ struct Obj {
 };
 
 struct ObjString : public Obj {
-    std::string str;
+    std::string_view str;
 
     ObjString(ObjType type, Obj* obj, std::string_view view);
 };

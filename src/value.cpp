@@ -63,9 +63,9 @@ ObjString *asString(Value value) {
     return static_cast<ObjString*>(asObject(value));
 }
 
-const char* asCString(Value value) {
-    return static_cast<ObjString*>(asObject(value))->str.c_str();
-}
+//const char* asCString(Value value) {
+//    return static_cast<ObjString*>(asObject(value))->str.data();
+//}
 
 bool isFalsey(Value val) {
 //    return isNil(val) || (isBool(val) && !asBool(val));
@@ -90,7 +90,7 @@ bool valuesEqual(Value a, Value b) {
     if (a.index() != b.index()) return false;
 
     if (std::holds_alternative<Obj*>(a)) {
-        return asString(a)->str == asString(b)->str;
+        return asString(a)->str.data() == asString(b)->str.data();
     }
 
     return a == b;

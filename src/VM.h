@@ -4,6 +4,7 @@
 #include <memory>
 #include "chunk.h"
 #include <array>
+#include <unordered_set>
 
 constexpr const auto STACK_MAX = 256;
 
@@ -19,6 +20,7 @@ struct VM {
     std::array<Value, STACK_MAX> stack;
     Value* stackTop;
     Obj* objects{nullptr};
+    std::unordered_set<std::string> strings;
 
     VM();
     ~VM();

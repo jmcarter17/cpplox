@@ -177,7 +177,15 @@ void VM::resetStack() {
 
 void VM::concatenate() {
     ObjString* b = asString(pop());
-    asString(peek(0))->str += b->str;
+    ObjString* a = asString(pop());
+    auto aStr = std::string(a->str);
+    auto bStr = std::string(b->str);
+    auto [it, res] = strings.emplace(aStr + bStr);
+    auto view = std::string_view{*it};
+    auto obj = new ObjString{ObjType::STRING, objects, view};
+    objects = obj;
+
+    push(createValue(static_cast<Obj*>(obj)));
 }
 
 VM::~VM() {

@@ -19,7 +19,7 @@ double asNumber(Value value);
 bool asBool(Value value);
 Obj* asObject(Value value);
 ObjString* asString(Value value);
-const char* asCString(Value value);
+//const char* asCString(Value value);
 bool isNumber(Value val);
 bool isBool(Value val);
 bool isNil(Value val);
