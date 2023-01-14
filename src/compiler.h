@@ -8,6 +8,7 @@
 #include "VM.h"
 #include <type_traits>
 #include <map>
+#include <cstdint>
 
 
 enum class Precedence {
@@ -46,13 +47,13 @@ class Compiler {
 
 //  Parser functions
     void expression();
-    void number();
-    void grouping();
-    void unary();
-    void binary();
-    void literal();
+    void number(bool canAssign);
+    void grouping(bool canAssign);
+    void unary(bool canAssign);
+    void binary(bool canAssign);
+    void literal(bool canAssign);
     uint8_t makeConstant(Value value);
-    void string();
+    void string(bool canAssign);
 
     void error(std::string_view message);
     void errorAt(const Token &token, std::string_view message);
@@ -67,7 +68,7 @@ class Compiler {
     Chunk *currentChunk();
 
 //    typedef void (Compiler::*ParseFn)();
-    using ParseFn = void (Compiler::*)();
+    using ParseFn = void (Compiler::*)(bool canAssign);
 
     struct ParseRule {
         ParseFn prefix;
@@ -83,6 +84,31 @@ public:
     bool compile(Chunk *chunk);
 
     ObjString* copyString(std::string_view lexeme);
+
+    void declaration();
+
+    void statement();
+
+    void printStatement();
+
+    bool match(TokenType type);
+
+    [[nodiscard]] bool check(TokenType type) const;
+
+    void expressionStatement();
+
+    void synchronize();
+
+    void varDeclaration();
+
+    uint8_t parseVariable(std::string_view message);
+
+    uint8_t identifierConstant(const Token& token);
+
+    void defineVariable(uint8_t global);
+
+    void variable(bool canAssign);
+    void namedVariable(Token name, bool canAssign);
 };
 
 

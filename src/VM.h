@@ -5,6 +5,7 @@
 #include "chunk.h"
 #include <array>
 #include <unordered_set>
+#include <unordered_map>
 
 constexpr const auto STACK_MAX = 256;
 
@@ -21,6 +22,7 @@ struct VM {
     Value* stackTop;
     Obj* objects{nullptr};
     std::unordered_set<std::string> strings;
+    std::unordered_map<std::string, Value> globals;
 
     VM();
     ~VM();
@@ -46,6 +48,8 @@ struct VM {
     void concatenate();
 
     void deleteObjects() const;
+
+    ObjString *read_string();
 };
 
 

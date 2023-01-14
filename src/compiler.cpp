@@ -1,6 +1,7 @@
 #include "compiler.h"
 #include "scanner.h"
 #include <fmt/core.h>
+#include <cstdint>
 #include "common.h"
 #include "Disassembler.h"
 
@@ -25,7 +26,7 @@ Compiler::Compiler(std::string_view source, VM* vm) :
         {TokenType::GREATER_EQUAL, {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
         {TokenType::LESS,          {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
         {TokenType::LESS_EQUAL,    {nullptr,             &Compiler::binary, Precedence::COMPARISON}},
-        {TokenType::IDENTIFIER,    {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::IDENTIFIER,    {&Compiler::variable, nullptr,           Precedence::NONE}},
         {TokenType::STRING,        {&Compiler::string,   nullptr,           Precedence::NONE}},
         {TokenType::NUMBER,        {&Compiler::number,   nullptr,           Precedence::NONE}},
         {TokenType::AND,           {nullptr,             nullptr,           Precedence::NONE}},
@@ -51,8 +52,13 @@ Compiler::Compiler(std::string_view source, VM* vm) :
 bool Compiler::compile(Chunk *chunk) {
     compilingChunk = chunk;
     advance();
-    expression();
-    consume(TokenType::EOFILE, "Expect end of expression");
+
+    while (!match(TokenType::EOFILE)) {
+        declaration();
+    }
+
+//    consume(TokenType::EOFILE, "Expect end of expression");
+//
     endCompiler();
     return !parser.hadError;
 }
@@ -64,6 +70,16 @@ void Compiler::consume(TokenType type, std::string_view message) {
     }
 
     errorAtCurrent(message);
+}
+
+bool Compiler::match(TokenType type) {
+    if (!check(type)) return false;
+    advance();
+    return true;
+}
+
+bool Compiler::check(TokenType type) const {
+    return parser.current.type == type;
 }
 
 void Compiler::advance() {
@@ -136,27 +152,109 @@ void Compiler::endCompiler() {
     }
 }
 
+void Compiler::declaration() {
+    if (match(TokenType::VAR)) {
+        varDeclaration();
+    } else {
+        statement();
+    }
+
+    if (parser.panicMode) synchronize();
+}
+
+void Compiler::varDeclaration() {
+    uint8_t global = parseVariable("Expect variable name");
+
+    if (match(TokenType::EQUAL)) {
+        expression();
+    } else {
+        emitByte(OP::NIL);
+    }
+    consume(TokenType::SEMICOLON, "Expect ';' after variable declaration");
+
+    defineVariable(global);
+}
+
+void Compiler::statement() {
+    if (match(TokenType::PRINT)) {
+        printStatement();
+    } else {
+        expressionStatement();
+    }
+}
+
+void Compiler::printStatement() {
+    expression();
+    consume(TokenType::SEMICOLON, "Expect ';' after value.");
+    emitByte(OP::PRINT);
+}
+
+void Compiler::expressionStatement() {
+    expression();
+    consume(TokenType::SEMICOLON, "Expect ';' after expression");
+    emitByte(OP::POP);
+}
+
+void Compiler::synchronize() {
+    parser.panicMode = false;
+
+    while (parser.current.type != TokenType::EOFILE) {
+        if (parser.previous.type == TokenType::SEMICOLON) return;
+        switch (parser.current.type) {
+            case TokenType::CLASS:
+            case TokenType::FUN:
+            case TokenType::VAR:
+            case TokenType::FOR:
+            case TokenType::IF:
+            case TokenType::WHILE:
+            case TokenType::PRINT:
+            case TokenType::RETURN:
+                return;
+
+            default:
+                ; // do nothin
+        }
+        advance();
+    }
+}
+
 void Compiler::expression() {
     parsePrecedence(Precedence::ASSIGNMENT);
 }
 
-void Compiler::number() {
+void Compiler::number(bool canAssign) {
     auto lexeme = parser.previous.lexeme;
     auto value = std::strtod(lexeme.data(), nullptr);
     emitConstant(number_val(value));
 }
 
-void Compiler::string() {
+void Compiler::string(bool canAssign) {
     auto lexeme = parser.previous.lexeme;
-    emitConstant(obj_val(copyString(lexeme)));
+    auto str = std::string_view(lexeme.data() + 1, lexeme.size() - 2); // remove opening and trailing "
+    emitConstant(obj_val(copyString(str)));
 }
 
-void Compiler::grouping() {
+void Compiler::variable(bool canAssign) {
+    namedVariable(parser.previous, canAssign);
+}
+
+void Compiler::namedVariable(Token name, bool canAssign) {
+    uint8_t arg = identifierConstant(name);
+
+    if (canAssign && match(TokenType::EQUAL)) {
+        expression();
+        emitBytes(OP::SET_GLOBAL, arg);
+    } else {
+        emitBytes(OP::GET_GLOBAL, arg);
+    }
+}
+
+void Compiler::grouping(bool canAssign) {
     expression();
     consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-void Compiler::unary() {
+void Compiler::unary(bool canAssign) {
     TokenType operatorType = parser.previous.type;
 
     // compile the operand
@@ -174,7 +272,7 @@ void Compiler::unary() {
     }
 }
 
-void Compiler::binary() {
+void Compiler::binary(bool canAssign) {
     TokenType operatorType = parser.previous.type;
     ParseRule *rule = getRule(operatorType);
     parsePrecedence(static_cast<Precedence>(to_integral(rule->precedence) + 1));
@@ -215,7 +313,7 @@ void Compiler::binary() {
     }
 }
 
-void Compiler::literal() {
+void Compiler::literal(bool canAssign) {
     switch (parser.previous.type) {
         case TokenType::FALSE:
             emitByte(OP::FALSE);
@@ -248,25 +346,38 @@ void Compiler::parsePrecedence(Precedence precedence) {
         return;
     }
 
-    (this->*prefixRule)();
+    bool canAssign = precedence <= Precedence::ASSIGNMENT;
+    (this->*prefixRule)(canAssign);
 
     while (precedence <= getRule(parser.current.type)->precedence) {
         advance();
         ParseFn infixRule = getRule(parser.previous.type)->infix;
-        (this->*infixRule)();
+        (this->*infixRule)(canAssign);
     }
+}
+
+uint8_t Compiler::identifierConstant(const Token& token) {
+    return makeConstant(obj_val(copyString(token.lexeme)));
+}
+
+uint8_t Compiler::parseVariable(std::string_view message) {
+    consume(TokenType::IDENTIFIER, message);
+    return identifierConstant(parser.previous);
 }
 
 Compiler::ParseRule *Compiler::getRule(TokenType type) {
     return &rules[type];
 }
 
-ObjString* Compiler::copyString(std::string_view lexeme) {
-//    auto view = std::string_view(lexeme.data() + 1, lexeme.size() - 2);
-    auto [it, val] = vm->strings.emplace(std::string_view(lexeme.data() + 1, lexeme.size() - 2));
+ObjString* Compiler::copyString(std::string_view value) {
+    auto [it, val] = vm->strings.emplace(value);
     auto view = std::string_view(*it);
     auto obj = new ObjString(ObjType::STRING, vm->objects, view);
     vm->objects = obj;
     return obj;
+}
+
+void Compiler::defineVariable(uint8_t global) {
+    emitBytes(OP::DEFINE_GLOBAL, global);
 }
 

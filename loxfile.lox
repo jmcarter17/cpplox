@@ -1,1 +1,6 @@
-"string" == "st" + "ri" + "ng"
+var breakfast = "beignets";
+print breakfast;
+
+var beverage = "cafe au lait";
+breakfast = "beignets with " + beverage;
+print breakfast;

@@ -25,6 +25,11 @@ enum class OP : uint8_t {
     SUBTRACT,
     MULTIPLY,
     DIVIDE,
+    PRINT,
+    POP,
+    DEFINE_GLOBAL,
+    GET_GLOBAL,
+    SET_GLOBAL,
     RETURN
 };
 

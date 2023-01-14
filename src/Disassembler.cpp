@@ -21,6 +21,9 @@ int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
 
     switch (auto instruction = static_cast<OP>(chunk.code[index]); instruction) {
         case OP::CONSTANT:
+        case OP::DEFINE_GLOBAL:
+        case OP::GET_GLOBAL:
+        case OP::SET_GLOBAL:
             return constantInstruction(chunk, instruction, index);
         case OP::NIL:
         case OP::TRUE:
@@ -37,6 +40,8 @@ int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
         case OP::MULTIPLY:
         case OP::DIVIDE:
         case OP::NOT:
+        case OP::PRINT:
+        case OP::POP:
         case OP::RETURN:
             return simpleInstruction(instruction, index);
         default:
@@ -56,7 +61,7 @@ int Disassembler::simpleInstruction(OP code, int index) {
 
 int Disassembler::constantInstruction(const Chunk &chunk, OP op, int index) {
     auto constant_index = chunk.code[index + 1];
-    fmt::print("{} {:>10} ", op, constant_index);
+    fmt::print("{} {} ", op, constant_index);
     printValue(chunk.constants[constant_index]);
     fmt::print("\n");
     return index + 2;

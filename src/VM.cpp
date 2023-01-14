@@ -126,9 +126,43 @@ InterpretResult VM::run() {
             case OP::NOT:
                 push(bool_val(isFalsey(pop())));
                 break;
-            case OP::RETURN:
+            case OP::PRINT:
                 printValue(pop());
                 fmt::print("\n");
+                break;
+            case OP::POP:
+                pop();
+                break;
+            case OP::DEFINE_GLOBAL: {
+                ObjString *name = read_string();
+                globals.emplace(name->str, peek(0));
+                pop();
+                break;
+            }
+            case OP::GET_GLOBAL: {
+                ObjString *name = read_string();
+                auto it = globals.find(std::string(name->str));
+                if (it != globals.end()) {
+                    Value value = it->second;
+                    push(value);
+                } else {
+                    runtimeError(fmt::runtime("Undefined variable '{}'."), name->str);
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP::SET_GLOBAL: {
+                ObjString* name = read_string();
+                auto it = globals.find(std::string(name->str));
+                if (it != globals.end()) {
+                    it->second = peek(0);
+                } else {
+                    runtimeError(fmt::runtime("Undefined variable '{}'."), name->str);
+                    return InterpretResult::RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP::RETURN:
                 return InterpretResult::OK;
 
         }
@@ -145,6 +179,10 @@ uint8_t VM::read_byte() {
 
 Value VM::read_constant() {
     return chunk->constants[read_byte()];
+}
+
+ObjString *VM::read_string() {
+    return asString(read_constant());
 }
 
 void VM::push(Value value) {
