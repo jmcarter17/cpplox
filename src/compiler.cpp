@@ -152,6 +152,19 @@ void Compiler::endCompiler() {
     }
 }
 
+void Compiler::beginScope() {
+    current.scopeDepth++;
+}
+
+void Compiler::endScope() {
+    current.scopeDepth--;
+
+    while (current.localCount > 0 && current.locals[current.localCount-1].depth > current.scopeDepth){
+        emitByte(OP::POP);
+        current.localCount--;
+    }
+}
+
 void Compiler::declaration() {
     if (match(TokenType::VAR)) {
         varDeclaration();
@@ -178,6 +191,10 @@ void Compiler::varDeclaration() {
 void Compiler::statement() {
     if (match(TokenType::PRINT)) {
         printStatement();
+    } else if (match(TokenType::LEFT_BRACE)) {
+        beginScope();
+        block();
+        endScope();
     } else {
         expressionStatement();
     }
@@ -222,6 +239,44 @@ void Compiler::expression() {
     parsePrecedence(Precedence::ASSIGNMENT);
 }
 
+void Compiler::block() {
+    while(!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOFILE)) {
+        declaration();
+    }
+    consume(TokenType::RIGHT_BRACE, "Expect, '}' after block.");
+}
+
+void Compiler::declareVariable() {
+    if (current.scopeDepth == 0) {
+        return;
+    }
+
+    Token name = parser.previous;
+    for (int i = current.localCount - 1; i >= 0 ; --i) {
+        auto& local = current.locals[i];
+        if (local.depth != -1 && local.depth < current.scopeDepth) {
+            break;
+        }
+
+        if (identifiersEqual(name, local.name)) {
+            error("Already a variable with this name in this scope.");
+        }
+    }
+
+    addLocal(name);
+}
+
+void Compiler::addLocal(Token name) {
+    if (current.localCount == UINT8_COUNT) {
+        error("Too many local variables in function.");
+        return;
+    }
+
+    Local& local = current.locals[current.localCount++];
+    local.name = name;
+    local.depth = -1;
+}
+
 void Compiler::number(bool canAssign) {
     auto lexeme = parser.previous.lexeme;
     auto value = std::strtod(lexeme.data(), nullptr);
@@ -239,13 +294,23 @@ void Compiler::variable(bool canAssign) {
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {
-    uint8_t arg = identifierConstant(name);
+
+    OP getOp, setOp;
+    int arg = resolveLocal(name);
+    if (arg != -1) {
+        getOp = OP::GET_LOCAL;
+        setOp = OP::SET_LOCAL;
+    } else {
+        arg = identifierConstant(name);
+        getOp = OP::GET_GLOBAL;
+        setOp = OP::SET_GLOBAL;
+    }
 
     if (canAssign && match(TokenType::EQUAL)) {
         expression();
-        emitBytes(OP::SET_GLOBAL, arg);
+        emitBytes(setOp, arg);
     } else {
-        emitBytes(OP::GET_GLOBAL, arg);
+        emitBytes(getOp, arg);
     }
 }
 
@@ -360,8 +425,30 @@ uint8_t Compiler::identifierConstant(const Token& token) {
     return makeConstant(obj_val(copyString(token.lexeme)));
 }
 
+bool Compiler::identifiersEqual(const Token &a, const Token &b) {
+    return a.lexeme == b.lexeme;
+}
+
+int Compiler::resolveLocal(Token &name){
+    for (int i = current.localCount - 1; i >= 0; --i) {
+        auto &local = current.locals[i];
+        if (identifiersEqual(name, local.name)) {
+            if (local.depth == -1) {
+                error("Can't read local variable in its own initializer.");
+            }
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 uint8_t Compiler::parseVariable(std::string_view message) {
     consume(TokenType::IDENTIFIER, message);
+
+    declareVariable();
+    if (current.scopeDepth > 0) return 0;
+
     return identifierConstant(parser.previous);
 }
 
@@ -378,6 +465,15 @@ ObjString* Compiler::copyString(std::string_view value) {
 }
 
 void Compiler::defineVariable(uint8_t global) {
+    if (current.scopeDepth > 0) {
+        markInitialized();
+        return;
+    }
+
     emitBytes(OP::DEFINE_GLOBAL, global);
+}
+
+void Compiler::markInitialized() {
+    current.locals[current.localCount - 1].depth = current.scopeDepth;
 }
 

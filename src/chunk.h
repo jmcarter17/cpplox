@@ -28,6 +28,8 @@ enum class OP : uint8_t {
     PRINT,
     POP,
     DEFINE_GLOBAL,
+    GET_LOCAL,
+    SET_LOCAL,
     GET_GLOBAL,
     SET_GLOBAL,
     RETURN

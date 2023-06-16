@@ -6,6 +6,7 @@
 #include "chunk.h"
 #include "scanner.h"
 #include "VM.h"
+#include "common.h"
 #include <type_traits>
 #include <map>
 #include <cstdint>
@@ -33,41 +34,78 @@ struct Parser {
     bool panicMode{};
 };
 
+struct Local {
+    Token name;
+    int depth{};
+};
+
+struct CompilerLocals {
+    Local locals[UINT8_COUNT];
+    int localCount{};
+    int scopeDepth{};
+};
+
 class Compiler {
     Parser parser;
     Scanner scanner;
     Chunk *compilingChunk;
-    VM* vm;
+    VM *vm;
+    CompilerLocals current{};
 
 //    Compiler functions
     void advance();
+
     void consume(TokenType type, std::string_view message);
+
     void endCompiler();
+
+    void beginScope();
+
+    void endScope();
+
+    void declareVariable();
+
+    void addLocal(Token name);
+
     void parsePrecedence(Precedence precedence);
 
 //  Parser functions
     void expression();
+
+    void block();
+
     void number(bool canAssign);
+
     void grouping(bool canAssign);
+
     void unary(bool canAssign);
+
     void binary(bool canAssign);
+
     void literal(bool canAssign);
+
     uint8_t makeConstant(Value value);
+
     void string(bool canAssign);
 
     void error(std::string_view message);
+
     void errorAt(const Token &token, std::string_view message);
+
     void errorAtCurrent(std::string_view message);
 
     void emitByte(uint8_t byte);
+
     void emitByte(OP opcode);
+
     void emitReturn();
+
     void emitBytes(OP opcode, uint8_t byte);
+
     void emitConstant(Value value);
 
     Chunk *currentChunk();
 
-//    typedef void (Compiler::*ParseFn)();
     using ParseFn = void (Compiler::*)(bool canAssign);
 
     struct ParseRule {
@@ -77,13 +115,15 @@ class Compiler {
     };
 
     std::map<TokenType, ParseRule> rules;
+
     ParseRule *getRule(TokenType type);
 
 public:
-    explicit Compiler(std::string_view source, VM* vm);
+    explicit Compiler(std::string_view source, VM *vm);
+
     bool compile(Chunk *chunk);
 
-    ObjString* copyString(std::string_view lexeme);
+    ObjString *copyString(std::string_view lexeme);
 
     void declaration();
 
@@ -103,12 +143,19 @@ public:
 
     uint8_t parseVariable(std::string_view message);
 
-    uint8_t identifierConstant(const Token& token);
+    uint8_t identifierConstant(const Token &token);
+
+    static bool identifiersEqual(const Token &a, const Token &b);
+
+    int resolveLocal(Token &name);
 
     void defineVariable(uint8_t global);
 
     void variable(bool canAssign);
+
     void namedVariable(Token name, bool canAssign);
+
+    void markInitialized();
 };
 
 

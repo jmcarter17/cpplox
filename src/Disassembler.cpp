@@ -25,6 +25,9 @@ int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
         case OP::GET_GLOBAL:
         case OP::SET_GLOBAL:
             return constantInstruction(chunk, instruction, index);
+        case OP::GET_LOCAL:
+        case OP::SET_LOCAL:
+            return byteInstruction(chunk, instruction, index);
         case OP::NIL:
         case OP::TRUE:
         case OP::FALSE:
@@ -57,6 +60,12 @@ int Disassembler::unknownInstruction(OP op, int index) {
 int Disassembler::simpleInstruction(OP code, int index) {
     fmt::print("{}\n", code);
     return index + 1;
+}
+
+int Disassembler::byteInstruction(const Chunk &chunk, OP code, int index) {
+    auto slot = chunk.code[index + 1];
+    fmt::print("{} {}\n", code, slot);
+    return index + 2;
 }
 
 int Disassembler::constantInstruction(const Chunk &chunk, OP op, int index) {

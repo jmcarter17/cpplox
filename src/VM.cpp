@@ -3,7 +3,7 @@
 #include "Disassembler.h"
 #include <functional>
 #include "compiler.h"
-#include <cstdarg>
+//#include <cstdarg>
 
 
 VM::VM() : stackTop{stack.data()} {}
@@ -139,6 +139,16 @@ InterpretResult VM::run() {
                 pop();
                 break;
             }
+            case OP::GET_LOCAL: {
+                auto slot = read_byte();
+                push(stack[slot]);
+                break;
+            }
+            case OP::SET_LOCAL: {
+                auto slot = read_byte();
+                stack[slot] = peek(0);
+                break;
+            }
             case OP::GET_GLOBAL: {
                 ObjString *name = read_string();
                 auto it = globals.find(std::string(name->str));
@@ -193,7 +203,7 @@ Value VM::pop() {
     return *(--stackTop);
 }
 
-Value VM::peek(int distance) {
+Value VM::peek(int distance) const {
     return stackTop[-1 - distance];
 }
 

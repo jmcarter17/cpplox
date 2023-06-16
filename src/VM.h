@@ -38,7 +38,7 @@ struct VM {
     template<typename BINARY>
     constexpr auto binary_op(BINARY fct) -> InterpretResult;
 
-    Value peek(int distance);
+    Value peek(int distance) const;
 
     template<typename... Args>
     void runtimeError(fmt::basic_runtime<char> format, Args&&... args);
