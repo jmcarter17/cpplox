@@ -29,7 +29,7 @@ Compiler::Compiler(std::string_view source, VM* vm) :
         {TokenType::IDENTIFIER,    {&Compiler::variable, nullptr,           Precedence::NONE}},
         {TokenType::STRING,        {&Compiler::string,   nullptr,           Precedence::NONE}},
         {TokenType::NUMBER,        {&Compiler::number,   nullptr,           Precedence::NONE}},
-        {TokenType::AND,           {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::AND,           {nullptr,             &Compiler::and_,   Precedence::AND}},
         {TokenType::CLASS,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::ELSE,          {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::FALSE,         {&Compiler::literal,  nullptr,           Precedence::NONE}},
@@ -37,7 +37,7 @@ Compiler::Compiler(std::string_view source, VM* vm) :
         {TokenType::FUN,           {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::IF,            {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::NIL,           {&Compiler::literal,  nullptr,           Precedence::NONE}},
-        {TokenType::OR,            {nullptr,             nullptr,           Precedence::NONE}},
+        {TokenType::OR,            {nullptr,             &Compiler::or_,    Precedence::OR}},
         {TokenType::PRINT,         {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::RETURN,        {nullptr,             nullptr,           Precedence::NONE}},
         {TokenType::SUPER,         {nullptr,             nullptr,           Precedence::NONE}},
@@ -143,6 +143,23 @@ void Compiler::emitConstant(Value value) {
     emitBytes(OP::CONSTANT, makeConstant(value));
 }
 
+int Compiler::emitJump(OP op) {
+    emitByte(op);
+    emitByte(0xff);
+    emitByte(0xff);
+    return static_cast<int>(compilingChunk->code.size()) - 2;
+}
+
+void Compiler::emitLoop(unsigned long start) {
+    emitByte(OP::LOOP);
+
+    auto offset = compilingChunk->code.size() - start + 2;
+    if (offset > std::numeric_limits<uint16_t>::max()) error("Loop body too large");
+
+    emitByte((offset >> 8) & 0xff);
+    emitByte(offset & 0xff);
+}
+
 void Compiler::endCompiler() {
     emitReturn();
     if constexpr (DEBUG_PRINT_CODE) {
@@ -191,6 +208,12 @@ void Compiler::varDeclaration() {
 void Compiler::statement() {
     if (match(TokenType::PRINT)) {
         printStatement();
+    } else if (match(TokenType::FOR)) {
+        forStatement();
+    } else if (match(TokenType::IF)) {
+        ifStatement();
+    } else if (match(TokenType::WHILE)) {
+        whileStatement();
     } else if (match(TokenType::LEFT_BRACE)) {
         beginScope();
         block();
@@ -294,7 +317,6 @@ void Compiler::variable(bool canAssign) {
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {
-
     OP getOp, setOp;
     int arg = resolveLocal(name);
     if (arg != -1) {
@@ -394,6 +416,23 @@ void Compiler::literal(bool canAssign) {
     }
 }
 
+void Compiler::and_(bool canAssign){
+    int endJump = emitJump(OP::JUMP_IF_FALSE);
+
+    emitByte(OP::POP);
+    parsePrecedence(Precedence::AND);
+
+    patchJump(endJump);
+}
+
+void Compiler::or_(bool canAssign) {
+    int endJump = emitJump(OP::JUMP_IF_TRUE);
+
+    emitByte(OP::POP);
+    parsePrecedence(Precedence::OR);
+    patchJump(endJump);
+}
+
 uint8_t Compiler::makeConstant(Value value) {
     int constant = currentChunk()->addConstant(value);
     if (constant > std::numeric_limits<uint8_t>::max()) {
@@ -475,5 +514,90 @@ void Compiler::defineVariable(uint8_t global) {
 
 void Compiler::markInitialized() {
     current.locals[current.localCount - 1].depth = current.scopeDepth;
+}
+
+void Compiler::ifStatement() {
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
+    expression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+
+    int thenJump = emitJump(OP::JUMP_IF_FALSE);
+    emitByte(OP::POP);
+    statement();
+    int elseJump = emitJump(OP::JUMP);
+    patchJump(thenJump);
+    emitByte(OP::POP);
+
+    if (match(TokenType::ELSE)) statement();
+    patchJump(elseJump);
+}
+
+void Compiler::forStatement() {
+    beginScope();
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
+    if (match(TokenType::SEMICOLON)) {
+        // Non initializer.
+    } else if (match(TokenType::VAR)) {
+        varDeclaration();
+    } else {
+        expressionStatement();
+    }
+
+    auto loopStart = compilingChunk->code.size();
+    int exitJump = -1;
+    if (!match(TokenType::SEMICOLON)) {
+        expression();
+        consume(TokenType::SEMICOLON, "Expect ';' after loop conditions.");
+
+        exitJump = emitJump(OP::JUMP_IF_FALSE);
+        emitByte(OP::POP);
+    }
+
+    if (!match(TokenType::RIGHT_PAREN)) {
+        int bodyJump = emitJump(OP::JUMP);
+        auto incrementStart = compilingChunk->code.size();
+        expression();
+        emitByte(OP::POP);
+        consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        emitLoop(loopStart);
+        loopStart = incrementStart;
+        patchJump(bodyJump);
+    }
+
+    statement();
+    emitLoop(loopStart);
+
+    if (exitJump != -1) {
+        patchJump(exitJump);
+        emitByte(OP::POP);
+    }
+    endScope();
+}
+
+void Compiler::whileStatement() {
+    auto loopStart = compilingChunk->code.size();
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
+    expression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+
+    int exitJump = emitJump(OP::JUMP_IF_FALSE);
+    emitByte(OP::POP);
+    statement();
+    emitLoop(loopStart);
+
+    patchJump(exitJump);
+    emitByte(OP::POP);
+}
+
+void Compiler::patchJump(int offset) {
+    auto jumpsize = compilingChunk->code.size() - offset - 2;
+
+    if (jumpsize > std::numeric_limits<uint16_t>::max()) {
+        error("Too much code to jump over.");
+    }
+
+    compilingChunk->code[offset] = (jumpsize >> 8) & 0xff;
+    compilingChunk->code[offset + 1] = jumpsize & 0xff;
 }
 

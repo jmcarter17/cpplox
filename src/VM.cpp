@@ -172,6 +172,26 @@ InterpretResult VM::run() {
                 }
                 break;
             }
+            case OP::JUMP: {
+                auto offset = read_short();
+                ip += offset;
+                break;
+            }
+            case OP::JUMP_IF_TRUE: {
+                auto offset = read_short();
+                if (!isFalsey(peek(0))) ip += offset;
+                break;
+            }
+            case OP::JUMP_IF_FALSE: {
+                auto offset = read_short();
+                if (isFalsey(peek(0))) ip += offset;
+                break;
+            }
+            case OP::LOOP: {
+                auto offset = read_short();
+                ip -= offset;
+                break;
+            }
             case OP::RETURN:
                 return InterpretResult::OK;
 
@@ -185,6 +205,11 @@ InterpretResult VM::run() {
 
 uint8_t VM::read_byte() {
     return *ip++;
+}
+
+uint16_t VM::read_short() {
+    ip += 2;
+    return static_cast<uint16_t>((ip[-2] << 8) | ip[-1]);
 }
 
 Value VM::read_constant() {

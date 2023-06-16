@@ -84,6 +84,10 @@ class Compiler {
 
     void literal(bool canAssign);
 
+    void and_(bool canAssign);
+
+    void or_(bool canAssign);
+
     uint8_t makeConstant(Value value);
 
     void string(bool canAssign);
@@ -156,6 +160,18 @@ public:
     void namedVariable(Token name, bool canAssign);
 
     void markInitialized();
+
+    void ifStatement();
+
+    int emitJump(OP op);
+
+    void patchJump(int offset);
+
+    void whileStatement();
+
+    void emitLoop(unsigned long start);
+
+    void forStatement();
 };
 
 

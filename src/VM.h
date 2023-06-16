@@ -30,6 +30,7 @@ struct VM {
     InterpretResult interpret(std::string_view);
     InterpretResult run();
     inline uint8_t read_byte();
+    inline uint16_t read_short();
     inline Value read_constant();
 
     void push(Value value);

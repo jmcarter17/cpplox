@@ -47,6 +47,12 @@ int Disassembler::disassembleInstruction(const Chunk &chunk, int index) {
         case OP::POP:
         case OP::RETURN:
             return simpleInstruction(instruction, index);
+        case OP::JUMP:
+        case OP::JUMP_IF_TRUE:
+        case OP::JUMP_IF_FALSE:
+            return jumpInstruction(chunk, instruction, 1, index);
+        case OP::LOOP:
+            return jumpInstruction(chunk, instruction, -1, index);
         default:
             return unknownInstruction(instruction, index);
     }
@@ -74,4 +80,11 @@ int Disassembler::constantInstruction(const Chunk &chunk, OP op, int index) {
     printValue(chunk.constants[constant_index]);
     fmt::print("\n");
     return index + 2;
+}
+
+int Disassembler::jumpInstruction(const Chunk &chunk, OP op, int sign, int index) {
+    uint16_t jump = static_cast<uint16_t>(chunk.code[index + 1] << 8) | chunk.code[index + 2];
+    fmt::print("{} {} {}\n", op, index, index + 3 + sign * jump);
+
+    return index + 3;
 }

@@ -32,6 +32,10 @@ enum class OP : uint8_t {
     SET_LOCAL,
     GET_GLOBAL,
     SET_GLOBAL,
+    JUMP,
+    JUMP_IF_TRUE,
+    JUMP_IF_FALSE,
+    LOOP,
     RETURN
 };
 
